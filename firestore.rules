@@ -1,0 +1,117 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: professionals
+    // Document ID: auto-generated or custom string
+    // Fields:
+    //   - id: string (required) - Professional ID
+    //   - name: string (required) - Full name
+    //   - businessName: string (required) - Business name
+    //   - specialty: string (required) - Business specialty
+    //   - category: string (required) - Beauty/wellness category
+    //   - phone: string (required) - Contact phone
+    //   - email: string (required) - Contact email
+    //   - website: string (required) - Contact website URL
+    //   - bio: string (required) - Bio/description
+    //   - imageUrl: string (required) - Portrait image URL
+    //   - logoUrl: string (optional) - Logo image URL
+    //   - isFeatured: bool (required) - Featured registry spotlight flag
+    //   - status: string (required) - "active" or "pending"
+    //   - createdAt: string (required) - ISO 8601 date string
+    //   - instagram: string (optional) - Instagram handle
+    //   - specialOffer: string (optional) - Special discount or deal
+    //
+    // Collection: feedback
+    // Document ID: auto-generated
+    // Fields:
+    //   - feedback: string (required, 1-1000 characters) - The user feedback message
+    //   - createdAt: string (required, ISO 8601 date string) - Date and time of feedback
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the user is an admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email != null && 
+             (request.auth.token.email.lower() == 'dpaterno@gmail.com' || 
+              request.auth.token.email.lower() == 'clayton.corey@icloud.com');
+    }
+
+    // Validate that the document contains only the allowed fields
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Validate required fields exist
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate ISO 8601 date string format (YYYY-MM-DDTHH:MM:SS)
+    // Escaping digits with double backslashes for rules compilation
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // Domain validator for feedback
+    function isValidFeedback(data) {
+      return hasOnlyAllowedFields(['feedback', 'createdAt']) &&
+             hasRequiredFields(['feedback', 'createdAt']) &&
+             data.feedback is string &&
+             data.feedback.size() >= 1 &&
+             data.feedback.size() <= 1000 &&
+             isValidDateString(data.createdAt);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /professionals/{professionalId} {
+      // The collective directory is public and readable by anyone
+      allow read: if true;
+
+      // Creation, editing, and moderation rules
+      allow create: if isAdmin() || (
+        isAuthenticated() && 
+        request.auth.token.email != null && 
+        request.resource.data.email.lower() == request.auth.token.email.lower() && 
+        request.resource.data.status == 'pending' && 
+        request.resource.data.isFeatured == false
+      );
+
+      allow update: if isAdmin() || (
+        isAuthenticated() && 
+        request.auth.token.email != null && 
+        resource.data.email.lower() == request.auth.token.email.lower() && 
+        request.resource.data.email.lower() == request.auth.token.email.lower() && 
+        request.resource.data.status == resource.data.status && 
+        request.resource.data.isFeatured == resource.data.isFeatured
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /feedback/{feedbackId} {
+      // Allow anyone to submit anonymous feedback with strict schema validation
+      allow create: if isValidFeedback(request.resource.data);
+      
+      // Prevent any client reading, updating, or deleting feedback
+      allow read, update, delete: if false;
+    }
+  }
+}

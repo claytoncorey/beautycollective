@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /campaign
+
+Sitemap: https://newmexicobeautycollective.com/sitemap.xml

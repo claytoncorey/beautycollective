@@ -1,0 +1,12 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /professionals/{userEmail}/{folderName}/{fileName} {
+      // Profile pictures and logo badges are publicly viewable
+      allow read: if true;
+      
+      // Uploads and edits are restricted to the authenticated user owning that email directory
+      allow write: if request.auth != null && request.auth.token.email == userEmail;
+    }
+  }
+}
