@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dbService, authService, storageService } from '../firebase';
+import { resizeImage } from '../utils/imageOptimizer';
 
 const getSocialUrl = (platform, value) => {
   if (!value) return '';
@@ -147,16 +148,20 @@ export default function MyProfile({ currentUser, onSignOut, adminEditingEmail, o
 
     setErrorMsg('');
     setSuccessMsg('');
-
-    const MAX_SIZE = 1024 * 1024; // 1 MB
-    if (file.size > MAX_SIZE) {
-      setErrorMsg('Portrait image size exceeds the 1 MB limit. Please compress it or select a smaller image.');
-      return;
-    }
-
     setUploadingImage(true);
+
     try {
-      const downloadUrl = await storageService.uploadProfessionalFile(targetEmail, 'portraits', file);
+      // Automatically resize image to a max dimension of 1024px
+      const processedFile = await resizeImage(file, 1024, 0.8);
+
+      const MAX_SIZE = 1024 * 1024; // 1 MB
+      if (processedFile.size > MAX_SIZE) {
+        setErrorMsg('Portrait image size exceeds the 1 MB limit. Please compress it or select a smaller image.');
+        setUploadingImage(false);
+        return;
+      }
+
+      const downloadUrl = await storageService.uploadProfessionalFile(targetEmail, 'portraits', processedFile);
       setFormData(prev => ({
         ...prev,
         imageUrl: downloadUrl
@@ -176,16 +181,20 @@ export default function MyProfile({ currentUser, onSignOut, adminEditingEmail, o
 
     setErrorMsg('');
     setSuccessMsg('');
-
-    const MAX_SIZE = 1024 * 1024; // 1 MB
-    if (file.size > MAX_SIZE) {
-      setErrorMsg('Logo badge image size exceeds the 1 MB limit. Please compress it or select a smaller image.');
-      return;
-    }
-
     setUploadingLogo(true);
+
     try {
-      const downloadUrl = await storageService.uploadProfessionalFile(targetEmail, 'logos', file);
+      // Automatically resize logo to a max dimension of 1024px while preserving format (e.g. transparent PNGs)
+      const processedFile = await resizeImage(file, 1024, 0.8);
+
+      const MAX_SIZE = 1024 * 1024; // 1 MB
+      if (processedFile.size > MAX_SIZE) {
+        setErrorMsg('Logo badge image size exceeds the 1 MB limit. Please compress it or select a smaller image.');
+        setUploadingLogo(false);
+        return;
+      }
+
+      const downloadUrl = await storageService.uploadProfessionalFile(targetEmail, 'logos', processedFile);
       setFormData(prev => ({
         ...prev,
         logoUrl: downloadUrl
@@ -205,16 +214,20 @@ export default function MyProfile({ currentUser, onSignOut, adminEditingEmail, o
 
     setErrorMsg('');
     setSuccessMsg('');
-
-    const MAX_SIZE = 1024 * 1024; // 1 MB
-    if (file.size > MAX_SIZE) {
-      setErrorMsg('Business photo image size exceeds the 1 MB limit. Please compress it or select a smaller image.');
-      return;
-    }
-
     setUploadingBusinessPhoto(true);
+
     try {
-      const downloadUrl = await storageService.uploadProfessionalFile(targetEmail, 'businesses', file);
+      // Automatically resize business photo to a max dimension of 1200px
+      const processedFile = await resizeImage(file, 1200, 0.8);
+
+      const MAX_SIZE = 1024 * 1024; // 1 MB
+      if (processedFile.size > MAX_SIZE) {
+        setErrorMsg('Business photo image size exceeds the 1 MB limit. Please compress it or select a smaller image.');
+        setUploadingBusinessPhoto(false);
+        return;
+      }
+
+      const downloadUrl = await storageService.uploadProfessionalFile(targetEmail, 'businesses', processedFile);
       setFormData(prev => ({
         ...prev,
         businessUrl: downloadUrl

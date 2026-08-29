@@ -425,13 +425,6 @@ export default function App() {
               )}
             </ul>
           </div>
-
-          <div className="footer-promo">
-            <h3>Grow Your Collective</h3>
-            <p>
-              Are you white-labeling, reselling, or managing custom list systems for other local service groups? This software integrates both elements seamlessly.
-            </p>
-          </div>
         </div>
 
         <div className="footer-bottom">
